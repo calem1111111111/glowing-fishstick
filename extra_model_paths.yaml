@@ -1,0 +1,14 @@
+comfyui:
+    base: /runpod-volume
+    checkpoints: /runpod-volume/checkpoints
+    clip: /runpod-volume/clip
+    clip_vision: /runpod-volume/clip_vision
+    configs: /runpod-volume/configs
+    controlnet: /runpod-volume/controlnet
+    diffusion_models: /runpod-volume/diffusion_models
+    embeddings: /runpod-volume/embeddings
+    loras: /runpod-volume/loras
+    style_models: /runpod-volume/style_models
+    upscale_models: /runpod-volume/upscale_models
+    vae: /runpod-volume/vae
+    text_encoders: /runpod-volume/text_encoders
