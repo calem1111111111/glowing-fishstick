@@ -1,10 +1,11 @@
-# Build argument for base image selection
+# ==================================================================
+# VIDEO ENDPOINT - Based on glowing-fishstick (WORKING)
+# ==================================================================
 ARG BASE_IMAGE=nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04
 
 # Stage 1: Base image with common dependencies
 FROM ${BASE_IMAGE} AS base
 
-# Build arguments for this stage with sensible defaults for standalone builds
 ARG COMFYUI_VERSION=latest
 ARG CUDA_VERSION_FOR_COMFY
 ARG ENABLE_PYTORCH_UPGRADE=false
@@ -64,10 +65,39 @@ RUN if [ "$ENABLE_PYTORCH_UPGRADE" = "true" ]; then \
 # Change working directory to ComfyUI
 WORKDIR /comfyui
 
-# --- SYMLINK IMPLEMENTATION START ---
+# ==========================================
+# Install VIDEO-specific custom nodes
+# ==========================================
 
-# Clean out the empty model directories that ComfyUI installs (e.g., /comfyui/models/loras)
-RUN rm -rf /comfyui/models/loras /comfyui/models/vae /comfyui/models/diffusion_models /comfyui/models/text_encoders
+# ComfyUI-WanVideoWrapper (main nodes for video generation)
+RUN cd /comfyui/custom_nodes && \
+    git clone https://github.com/kijai/ComfyUI-WanVideoWrapper.git && \
+    cd ComfyUI-WanVideoWrapper && \
+    pip install -r requirements.txt --no-cache-dir || true
+
+# ComfyUI-GGUF (for GGUF models if needed)
+RUN cd /comfyui/custom_nodes && \
+    git clone https://github.com/city96/ComfyUI-GGUF.git && \
+    cd ComfyUI-GGUF && \
+    pip install -r requirements.txt --no-cache-dir || true
+
+# Wan2.2 FirstLastFrame support
+RUN cd /comfyui/custom_nodes && \
+    git clone https://github.com/stduhpf/ComfyUI--Wan22FirstLastFrameToVideoLatent.git || true
+
+# Sage Attention (for faster generation)
+RUN pip install sageattention --no-cache-dir || true
+
+# ==========================================
+# SYMLINK IMPLEMENTATION FOR VIDEO MODELS
+# ==========================================
+
+# Clean out the empty model directories that ComfyUI installs
+RUN rm -rf /comfyui/models/loras \
+           /comfyui/models/vae \
+           /comfyui/models/diffusion_models \
+           /comfyui/models/text_encoders \
+           /comfyui/models/clip
 
 # Create symbolic links to the Network Volume mount point (/runpod-volume)
 # This fools ComfyUI into thinking the models are local.
@@ -81,31 +111,31 @@ RUN ln -s /runpod-volume/vae /comfyui/models/vae
 # UNETs / Diffusion Models
 RUN ln -s /runpod-volume/diffusion_models /comfyui/models/diffusion_models
 
-# CLIP / Text Encoders
+# CLIP / Text Encoders  
 RUN ln -s /runpod-volume/text_encoders /comfyui/models/text_encoders
 
-# --- SYMLINK IMPLEMENTATION END ---
+# Alternative CLIP path
+RUN ln -s /runpod-volume/clip /comfyui/models/clip
 
-# Go back to the root
-WORKDIR /
-
+# ==========================================
 # Install Python runtime dependencies for the handler
+# ==========================================
+WORKDIR /
 RUN uv pip install runpod requests websocket-client
 
-# Add application code and scripts
-ADD src/start.sh handler.py test_input.json ./
-RUN chmod +x /start.sh
-
-# Add script to install custom nodes
-COPY scripts/comfy-node-install.sh /usr/local/bin/comfy-node-install
-RUN chmod +x /usr/local/bin/comfy-node-install
+# ==========================================
+# Add workflows and handler
+# ==========================================
+RUN mkdir -p /comfyui/workflows
+COPY workflows/ /comfyui/workflows/
+COPY handler.py /handler.py
+COPY test_input.json /test_input.json
 
 # Prevent pip from asking for confirmation during uninstall steps in custom nodes
 ENV PIP_NO_INPUT=1
 
-# Copy helper script to switch Manager network mode at container start
-COPY scripts/comfy-manager-set-mode.sh /usr/local/bin/comfy-manager-set-mode
-RUN chmod +x /usr/local/bin/comfy-manager-set-mode
-
+# ==========================================
 # Set the default command to run when starting the container
-CMD ["/start.sh"]
+# ==========================================
+CMD ["python", "-u", "/handler.py"]
+
