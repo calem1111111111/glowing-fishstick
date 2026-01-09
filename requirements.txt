@@ -1,4 +1,6 @@
-# fix some problems with the queue
-runpod~=1.7.12
-websocket-client
-requests
+runpod>=1.0.0
+requests>=2.31.0
+boto3>=1.28.0
+Pillow>=10.0.0
+sageattention>=0.1.0
+
