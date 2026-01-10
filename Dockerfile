@@ -97,10 +97,14 @@ RUN rm -rf /comfyui/models/loras \
            /comfyui/models/vae \
            /comfyui/models/diffusion_models \
            /comfyui/models/text_encoders \
-           /comfyui/models/clip
+           /comfyui/models/clip \
+           /comfyui/models/checkpoints
 
 # Create symbolic links to the Network Volume mount point (/runpod-volume)
 # This fools ComfyUI into thinking the models are local.
+
+# Checkpoints (SDXL/SD models)
+RUN ln -s /runpod-volume/models/checkpoints /comfyui/models/checkpoints
 
 # LoRAs
 RUN ln -s /runpod-volume/loras /comfyui/models/loras
