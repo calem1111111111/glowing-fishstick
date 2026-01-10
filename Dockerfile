@@ -131,11 +131,20 @@ COPY workflows/ /comfyui/workflows/
 COPY handler.py /handler.py
 COPY test_input.json /test_input.json
 
+# Copy startup script
+COPY src/start.sh /start.sh
+RUN chmod +x /start.sh
+
+# Copy scripts directory for comfy-manager
+COPY scripts/ /scripts/
+RUN chmod +x /scripts/*.sh
+
 # Prevent pip from asking for confirmation during uninstall steps in custom nodes
 ENV PIP_NO_INPUT=1
 
 # ==========================================
 # Set the default command to run when starting the container
 # ==========================================
-CMD ["python", "-u", "/handler.py"]
+# Use start.sh which starts ComfyUI server first, then handler
+CMD ["/start.sh"]
 
