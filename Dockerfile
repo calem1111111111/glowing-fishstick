@@ -82,10 +82,30 @@ RUN cd /comfyui/custom_nodes && \
 RUN pip install sageattention --no-cache-dir || true
 
 # ==========================================
-# ADD EXTRA MODEL PATHS CONFIG
-# This tells ComfyUI where to find models on Network Volume
+# SYMLINKS TO NETWORK VOLUME MODELS
+# Your volume has models in /runpod-volume/models/*
 # ==========================================
-COPY extra_model_paths.yaml /comfyui/extra_model_paths.yaml
+# Remove default empty model directories
+RUN rm -rf /comfyui/models/checkpoints \
+           /comfyui/models/loras \
+           /comfyui/models/vae \
+           /comfyui/models/clip \
+           /comfyui/models/diffusion_models \
+           /comfyui/models/text_encoders \
+           /comfyui/models/controlnet \
+           /comfyui/models/upscale_models \
+           /comfyui/models/embeddings
+
+# Create symlinks to Network Volume (with /models/ subdir)
+RUN ln -s /runpod-volume/models/checkpoints /comfyui/models/checkpoints && \
+    ln -s /runpod-volume/models/loras /comfyui/models/loras && \
+    ln -s /runpod-volume/models/vae /comfyui/models/vae && \
+    ln -s /runpod-volume/models/clip /comfyui/models/clip && \
+    ln -s /runpod-volume/models/diffusion_models /comfyui/models/diffusion_models && \
+    ln -s /runpod-volume/models/text_encoders /comfyui/models/text_encoders && \
+    ln -s /runpod-volume/models/controlnet /comfyui/models/controlnet && \
+    ln -s /runpod-volume/models/upscale_models /comfyui/models/upscale_models && \
+    ln -s /runpod-volume/models/embeddings /comfyui/models/embeddings
 
 # ==========================================
 # Go back to root and install handler dependencies
